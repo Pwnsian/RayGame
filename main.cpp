@@ -105,6 +105,25 @@ float trace_ray(float start_x, float start_y, float ang, const GameMap& map, SDL
 
 float trace_player_fov_rays(const player& p, const GameMap& map, SDL_Surface* surface)
 {
+    SDL_SetRenderDrawColor(renderer, 0, 255, 255, 255);
+
+    // Draw Rays on player FOV, and then 3D image on the right half of the surface
+    float start_ang = p.a - p.fov / 2.0; // TODO: This probably won't always work
+    float end_ang = p.a + p.fov / 2.0;
+    int ray_number = 0;
+    for(float current_ang = start_ang; current_ang < end_ang; current_ang += (p.fov / 512.0), ++ray_number)
+    {
+        float ray_dist = trace_ray(p.x, p.y, current_ang, map, surface);
+        int column_x = map_render_size_w + ray_number;
+        int column_w = 1;
+        int column_h = (ray_dist > 0) ? full_image_size_h / ray_dist : ray_dist;
+        int column_y = full_image_size_h/2 - column_h/2;
+        SDL_RenderDrawLine(renderer, column_x, column_y, column_x, column_y + column_h);
+    }
+}
+
+float draw_player_3d_columns(const player& p, const GameMap& map, SDL_Surface* surface)
+{
     // Draw Rays on player FOV
     float start_ang = p.a - p.fov / 2.0; // TODO: This probably won't always work
     float end_ang = p.a + p.fov / 2.0;
