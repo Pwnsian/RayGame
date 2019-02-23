@@ -11,18 +11,20 @@ typedef std::array<std::array<char,16>,16> GameMap;
 //    return SDLRendererPtr(SDL_CreateSoftwareRenderer(surface), SDL_DestroyRenderer);
 //}
 
+SDL_Renderer* renderer = nullptr;
+
 struct player
 {
-    player() : x(0), y(0), a(0)
+    player() : x(0), y(0), a(0), fov(M_PI/3)
     { }
     float x;
     float y;
     float a;
+    float fov;
 };
 
 void init_surface(SDL_Surface* surface)
 {
-    SDL_Renderer* renderer = SDL_CreateSoftwareRenderer(surface);
     for(int i = 0; i < surface->h; ++i)
     for(int j = 0; j < surface->w; ++j)
     {
@@ -32,15 +34,13 @@ void init_surface(SDL_Surface* surface)
         SDL_SetRenderDrawColor(renderer, r, g, b, 255);
         SDL_RenderDrawPoint(renderer, i, j);
     }
-    SDL_DestroyRenderer(renderer);
 }
 
 void draw_map(const GameMap& map, SDL_Surface* surface)
 {
-    const size_t map_w = map.size();
-    const size_t map_h = map[0].size();
+    const size_t map_h = map.size();
+    const size_t map_w = map[0].size();
 
-    SDL_Renderer* renderer = SDL_CreateSoftwareRenderer(surface);
     int block_size_w = (surface->w / map_w);
     int block_size_h = (surface->h / map_h);
     for(int row = 0; row < map_h; ++row)
@@ -54,8 +54,7 @@ void draw_map(const GameMap& map, SDL_Surface* surface)
         SDL_SetRenderDrawColor(renderer, 0, 255, 255, 255);   
         SDL_Rect wall { block_x, block_y, block_size_w, block_size_h };
         SDL_RenderFillRect(renderer, &wall);
-    }
-    SDL_DestroyRenderer(renderer);    
+    }   
 }
 
 float to_radians(float degrees)
@@ -63,15 +62,53 @@ float to_radians(float degrees)
     return (M_PI / 180.f) * degrees;
 }
 
-float trace_player_ray(const player& player, const GameMap& map, SDL_Surface* surface)
+int to_pixels_x(const GameMap& map, SDL_Surface* surface, float map_position)
 {
-   float c = 0;   
-    for (; c<20; c+=.05) {
-        float x = player.x + c* cos(player.a);
-        float y = player.y + c* sin(player.a);
-        if (map[y][x]!=' ') break;
-   }
-   return c;
+    // Map width in absolute coordinates
+    const size_t map_w = map[0].size();
+
+    // How large a block is in pixels assuming the map is divided evenly
+    int block_size_w = (surface->w / map_w);
+
+    return  map_position * block_size_w;
+}
+
+int to_pixels_y(const GameMap& map, SDL_Surface* surface, float map_position)
+{
+    // Map height in absolute coordinates
+    const size_t map_y = map.size();
+
+    // How large a block is in pixels assuming the map is divided evenly
+    int block_size_h = (surface->h / map_y);
+
+    return  map_position * block_size_h;
+}
+
+float trace_ray(float start_x, float start_y, float ang, const GameMap& map, SDL_Surface* surface)
+{
+    float c = 0;
+    for (; c < 20; c += .05) 
+    {
+        float x = start_x + c * cos(ang);
+        float y = start_y + c * sin(ang);
+        if (map[(int)y][(int)x] != ' ')
+            break;
+        SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);            
+        SDL_RenderDrawPoint(renderer, to_pixels_x(map, surface, x), to_pixels_y(map, surface, y));
+    }
+
+    return c;
+}
+
+float trace_player_fov_rays(const player& p, const GameMap& map, SDL_Surface* surface)
+{
+    // Draw Rays on player FOV
+    float start_ang = p.a - p.fov / 2.0; // TODO: This probably won't always work
+    float end_ang = p.a + p.fov / 2.0;
+    for(float current_ang = start_ang; current_ang < end_ang; current_ang += (p.fov / 512.0))
+    {
+        trace_ray(p.x, p.y, current_ang, map, surface);
+    }
 }
 
 int main()
@@ -79,9 +116,8 @@ int main()
     // Init
     SDL_Init(SDL_INIT_EVERYTHING);
     SDL_Surface* surface = SDL_CreateRGBSurfaceWithFormat(0, 512, 512, 8, SDL_PIXELFORMAT_ARGB32);
-    init_surface(surface);
-
-    //GameMap map = {1,1};
+    renderer = SDL_CreateSoftwareRenderer(surface);    
+    init_surface(surface);      
 
     // Map
     GameMap map = // our game map
@@ -107,13 +143,17 @@ int main()
 
     // Player
     player p;
-    p.x = 50;
-    p.y = 50;
-    p.a = to_radians(30);
-    float dist = trace_player_ray(p, map, surface);
-    std::cout << dist << std::endl;
+    p.x = 3.456;
+    p.y = 2.345;
+    p.a = 1.523;
+    SDL_Rect playerpos { to_pixels_x(map, surface, p.x), to_pixels_y(map, surface, p.y), 8, 8 };
+    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+    SDL_RenderFillRect(renderer, &playerpos);
+    trace_player_fov_rays(p, map, surface);
+
 
     // Stop
     SDL_SaveBMP(surface, "output.bmp");
+    SDL_DestroyRenderer(renderer);  
     return 0;
 }
