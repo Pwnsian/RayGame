@@ -13,6 +13,33 @@ typedef std::array<std::array<char,16>,16> GameMap;
 
 SDL_Renderer* renderer = nullptr;
 
+int full_image_size_w = 1024;
+int full_image_size_h = 512;
+int map_render_size_w = 512;
+int map_render_size_h = 512;
+
+int to_pixels_x(const GameMap& map, SDL_Surface* surface, float map_position)
+{
+    // Map width in absolute coordinates
+    const size_t map_w = map[0].size();
+
+    // How large a block is in pixels assuming the map is divided evenly
+    int block_size_w = (map_render_size_w / map_w);
+
+    return  map_position * block_size_w;
+}
+
+int to_pixels_y(const GameMap& map, SDL_Surface* surface, float map_position)
+{
+    // Map height in absolute coordinates
+    const size_t map_y = map.size();
+
+    // How large a block is in pixels assuming the map is divided evenly
+    int block_size_h = (map_render_size_h / map_y);
+
+    return  map_position * block_size_h;
+}
+
 struct player
 {
     player() : x(0), y(0), a(0), fov(M_PI/3)
@@ -25,11 +52,11 @@ struct player
 
 void init_surface(SDL_Surface* surface)
 {
-    for(int i = 0; i < surface->h; ++i)
-    for(int j = 0; j < surface->w; ++j)
+    for(int i = 0; i < map_render_size_h; ++i)
+    for(int j = 0; j < map_render_size_w; ++j)
     {
-        uint8_t r = 255*j/float(surface->h); // varies between 0 and 255 as j sweeps the vertical
-        uint8_t g = 255*i/float(surface->w); // varies between 0 and 255 as i sweeps the horizontal
+        uint8_t r = 255*j/float(map_render_size_h); // varies between 0 and 255 as j sweeps the vertical
+        uint8_t g = 255*i/float(map_render_size_w); // varies between 0 and 255 as i sweeps the horizontal
         uint8_t b = 0;        
         SDL_SetRenderDrawColor(renderer, r, g, b, 255);
         SDL_RenderDrawPoint(renderer, i, j);
@@ -40,48 +67,24 @@ void draw_map(const GameMap& map, SDL_Surface* surface)
 {
     const size_t map_h = map.size();
     const size_t map_w = map[0].size();
+    int block_size_w = (map_render_size_w / map_w);
+    int block_size_h = (map_render_size_h / map_h);
 
-    int block_size_w = (surface->w / map_w);
-    int block_size_h = (surface->h / map_h);
     for(int row = 0; row < map_h; ++row)
     for(int col = 0; col < map_w; ++col)
     {
         char map_i_j = map[row][col];
         if(map_i_j == ' ')
             continue;
-        int block_x = block_size_w * col;            
-        int block_y = block_size_h * row;
-        SDL_SetRenderDrawColor(renderer, 0, 255, 255, 255);   
-        SDL_Rect wall { block_x, block_y, block_size_w, block_size_h };
+        SDL_Rect wall { to_pixels_x(map, surface, col), to_pixels_y(map, surface, row), block_size_w, block_size_h };            
+        SDL_SetRenderDrawColor(renderer, 0, 255, 255, 255);
         SDL_RenderFillRect(renderer, &wall);
-    }   
+    }
 }
 
 float to_radians(float degrees)
 {
     return (M_PI / 180.f) * degrees;
-}
-
-int to_pixels_x(const GameMap& map, SDL_Surface* surface, float map_position)
-{
-    // Map width in absolute coordinates
-    const size_t map_w = map[0].size();
-
-    // How large a block is in pixels assuming the map is divided evenly
-    int block_size_w = (surface->w / map_w);
-
-    return  map_position * block_size_w;
-}
-
-int to_pixels_y(const GameMap& map, SDL_Surface* surface, float map_position)
-{
-    // Map height in absolute coordinates
-    const size_t map_y = map.size();
-
-    // How large a block is in pixels assuming the map is divided evenly
-    int block_size_h = (surface->h / map_y);
-
-    return  map_position * block_size_h;
 }
 
 float trace_ray(float start_x, float start_y, float ang, const GameMap& map, SDL_Surface* surface)
@@ -93,7 +96,7 @@ float trace_ray(float start_x, float start_y, float ang, const GameMap& map, SDL
         float y = start_y + c * sin(ang);
         if (map[(int)y][(int)x] != ' ')
             break;
-        SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);            
+        SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
         SDL_RenderDrawPoint(renderer, to_pixels_x(map, surface, x), to_pixels_y(map, surface, y));
     }
 
@@ -115,7 +118,7 @@ int main()
 {
     // Init
     SDL_Init(SDL_INIT_EVERYTHING);
-    SDL_Surface* surface = SDL_CreateRGBSurfaceWithFormat(0, 512, 512, 8, SDL_PIXELFORMAT_ARGB32);
+    SDL_Surface* surface = SDL_CreateRGBSurfaceWithFormat(0, full_image_size_w, full_image_size_h, 8, SDL_PIXELFORMAT_ARGB32);
     renderer = SDL_CreateSoftwareRenderer(surface);    
     init_surface(surface);      
 
