@@ -2,6 +2,7 @@
 #include <memory>
 #include <cmath>
 #include <iostream>
+#include <sstream>
 
 typedef std::unique_ptr<SDL_Renderer, decltype(SDL_DestroyRenderer)> SDLRendererPtr;
 typedef std::array<std::array<char,16>,16> GameMap;
@@ -137,9 +138,6 @@ int main()
 {
     // Init
     SDL_Init(SDL_INIT_EVERYTHING);
-    SDL_Surface* surface = SDL_CreateRGBSurfaceWithFormat(0, full_image_size_w, full_image_size_h, 8, SDL_PIXELFORMAT_ARGB32);
-    renderer = SDL_CreateSoftwareRenderer(surface);    
-    init_surface(surface);      
 
     // Map
     GameMap map = // our game map
@@ -161,21 +159,45 @@ int main()
         {'0',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ','0'},
         {'0','0','0','2','2','2','2','2','2','2','2','0','0','0','0','0'}
     }};
-    draw_map(map, surface);
+
 
     // Player
     player p;
     p.x = 3.456;
     p.y = 2.345;
     p.a = 1.523;
-    SDL_Rect playerpos { to_pixels_x(map, surface, p.x), to_pixels_y(map, surface, p.y), 8, 8 };
-    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-    SDL_RenderFillRect(renderer, &playerpos);
-    trace_player_fov_rays(p, map, surface);
 
+    // Draw "Look around in a circle loop"
+    int look_count = 0;
+    for(float player_angle = 0; player_angle < 2 * M_PI; player_angle += ((2 * M_PI) / 360.0), ++look_count)
+    {
+        // Different surface and renderer per render
+        SDL_Surface* surface = SDL_CreateRGBSurfaceWithFormat(0, full_image_size_w, full_image_size_h, 8, SDL_PIXELFORMAT_ARGB32);
+        renderer = SDL_CreateSoftwareRenderer(surface);
+
+        // Draw Map
+        draw_map(map, surface);
+
+        // Draw Player
+        SDL_Rect playerpos { to_pixels_x(map, surface, p.x), to_pixels_y(map, surface, p.y), 8, 8 };
+        SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+        SDL_RenderFillRect(renderer, &playerpos);
+
+        // Adjust angle and render rays and 3D image.
+        p.a = player_angle;
+        trace_player_fov_rays(p, map, surface);
+
+        // Save image of this render
+        std::stringstream ss;
+        ss << "output_" << look_count << ".bmp";
+        std::string s = ss.str();
+        SDL_SaveBMP(surface, s.c_str());
+
+        SDL_DestroyRenderer(renderer);
+        SDL_FreeSurface(surface);
+    }
 
     // Stop
-    SDL_SaveBMP(surface, "output.bmp");
-    SDL_DestroyRenderer(renderer);  
+    //SDL_DestroyRenderer(renderer);
     return 0;
 }
