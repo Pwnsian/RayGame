@@ -171,17 +171,6 @@ float trace_player_fov_rays(const player& p, const GameMap& map, SDL_Surface* su
     }
 }
 
-float draw_player_3d_columns(const player& p, const GameMap& map, SDL_Surface* surface)
-{
-    // Draw Rays on player FOV
-    float start_ang = p.a - p.fov / 2.0; // TODO: This probably won't always work
-    float end_ang = p.a + p.fov / 2.0;
-    for(float current_ang = start_ang; current_ang < end_ang; current_ang += (p.fov / 512.0))
-    {
-        trace_ray(p.x, p.y, current_ang, map, surface);
-    }
-}
-
 int main()
 {
     // Init
