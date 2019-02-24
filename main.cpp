@@ -241,10 +241,6 @@ int main()
         p.a = player_angle;
         trace_player_fov_rays(p, map, surface);
 
-        SDL_Rect source_rect { 64, 0, 64, 64 };
-        SDL_Rect dest_rest { 0, 0, 64, 64 };
-        SDL_BlitSurface(map_textures, &source_rect, surface, &dest_rest);
-
         // Save image of this render
         std::stringstream ss;
         ss << "output_" << look_count << ".bmp";
@@ -253,11 +249,8 @@ int main()
 
         SDL_DestroyRenderer(renderer);
         SDL_FreeSurface(surface);
-
-        break;
     }
 
     // Stop
-    //SDL_DestroyRenderer(renderer);
     return 0;
 }
