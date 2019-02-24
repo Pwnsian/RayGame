@@ -16,11 +16,7 @@ std::unordered_map<char, SDL_Color> mapColors = {
     {' ', SDL_Color {0, 0, 0, 0} },  
 };
 
-//SDLRendererPtr MakeSDLRenderer(SDL_Surface* surface)
-//{
-//    return SDLRendererPtr(SDL_CreateSoftwareRenderer(surface), SDL_DestroyRenderer);
-//}
-
+// The 6 wall textures, each 64 pixels wide, 64 pixels high total
 SDL_Surface* map_textures = nullptr;
 
 SDL_Renderer* renderer = nullptr;
@@ -75,6 +71,15 @@ void init_surface(SDL_Surface* surface)
     }
 }
 
+SDL_Color get_pixel(SDL_Surface *surface, int x, int y)
+{
+    Uint32* pixels = (Uint32 *)surface->pixels;
+    Uint32 *target_pixel = (Uint32 *)pixels + y * surface->pitch + x;
+    SDL_Color color;
+    SDL_GetRGBA(*target_pixel, surface->format, &color.r, &color.g, &color.b, &color.a);
+    return color;
+}
+
 void draw_map(const GameMap& map, SDL_Surface* surface)
 {
     const size_t map_h = map.size();
@@ -89,8 +94,9 @@ void draw_map(const GameMap& map, SDL_Surface* surface)
         if(map_i_j == ' ')
             continue;
         SDL_Rect wall { to_pixels_x(map, surface, col), to_pixels_y(map, surface, row), block_size_w, block_size_h };
-        SDL_Color& wallColor = mapColors.at(map_i_j);
-        SDL_SetRenderDrawColor(renderer, wallColor.r, wallColor.g, wallColor.b, wallColor.a);
+
+        SDL_Color wall_color = get_pixel(map_textures, 64 * (map_i_j - '0'), 0);
+        SDL_SetRenderDrawColor(renderer, wall_color.r, wall_color.g, wall_color.b, wall_color.a);
         SDL_RenderFillRect(renderer, &wall);
     }
 }
@@ -182,8 +188,8 @@ int main()
         {'0',' ',' ',' ',' ',' ','3',' ',' ',' ',' ',' ',' ',' ',' ','0'},
         {'0',' ',' ',' ','1','0','0','0','0',' ',' ',' ',' ',' ',' ','0'},
         {'0',' ',' ',' ','0',' ',' ',' ','1','1','1','0','0',' ',' ','0'},
-        {'0',' ',' ',' ','0',' ',' ',' ','0',' ',' ',' ',' ',' ',' ','0'},
-        {'0',' ',' ',' ','0',' ',' ',' ','1',' ',' ','0','0','0','0','0'},
+        {'4',' ',' ',' ','4',' ',' ',' ','0',' ',' ',' ',' ',' ',' ','0'},
+        {'4',' ',' ',' ','4',' ',' ',' ','1',' ',' ','0','0','0','0','0'},
         {'0',' ',' ',' ',' ',' ',' ',' ','1',' ',' ',' ',' ',' ',' ','0'},
         {'2',' ',' ',' ',' ',' ',' ',' ','1',' ',' ',' ',' ',' ',' ','0'},
         {'0',' ',' ',' ',' ',' ',' ',' ','0',' ',' ',' ',' ',' ',' ','0'},
