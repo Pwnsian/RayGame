@@ -134,10 +134,11 @@ float trace_player_fov_rays(const player& p, const GameMap& map, SDL_Surface* su
         auto cast_result = trace_ray(p.x, p.y, current_ang, map, surface);
         float ray_dist = cast_result.first;
         char tile_hit = cast_result.second;
+        float corrected_ray_dist = ray_dist * cos(current_ang - p.a);
 
         int column_x = map_render_size_w + ray_number;
         int column_w = 1;
-        int column_h = (ray_dist > 0) ? full_image_size_h / ray_dist : ray_dist;
+        int column_h = (corrected_ray_dist > 0) ? full_image_size_h / corrected_ray_dist : corrected_ray_dist;
         int column_y = full_image_size_h/2 - column_h/2;
 
         SDL_Color tile_color = mapColors.at(tile_hit);
