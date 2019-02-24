@@ -21,6 +21,8 @@ std::unordered_map<char, SDL_Color> mapColors = {
 //    return SDLRendererPtr(SDL_CreateSoftwareRenderer(surface), SDL_DestroyRenderer);
 //}
 
+SDL_Surface* map_textures = nullptr;
+
 SDL_Renderer* renderer = nullptr;
 
 int full_image_size_w = 1024;
@@ -163,6 +165,12 @@ int main()
     // Init
     SDL_Init(SDL_INIT_EVERYTHING);
 
+    map_textures = SDL_LoadBMP("walltext.bmp");
+    if(map_textures == nullptr) {
+        std::cerr << "Could not load walltext.bmp" << std::endl;
+        return 1;
+    }
+
     // Map
     GameMap map = // our game map
     {{
@@ -211,6 +219,10 @@ int main()
         p.a = player_angle;
         trace_player_fov_rays(p, map, surface);
 
+        SDL_Rect source_rect { 64, 0, 64, 64 };
+        SDL_Rect dest_rest { 0, 0, 64, 64 };
+        SDL_BlitSurface(map_textures, &source_rect, surface, &dest_rest);
+
         // Save image of this render
         std::stringstream ss;
         ss << "output_" << look_count << ".bmp";
@@ -219,6 +231,8 @@ int main()
 
         SDL_DestroyRenderer(renderer);
         SDL_FreeSurface(surface);
+
+        break;
     }
 
     // Stop
