@@ -8,14 +8,6 @@
 typedef std::unique_ptr<SDL_Renderer, decltype(SDL_DestroyRenderer)> SDLRendererPtr;
 typedef std::array<std::array<char,16>,16> GameMap;
 
-std::unordered_map<char, SDL_Color> mapColors = {
-    {'0', SDL_Color {162, 151, 163, 255} },
-    {'1', SDL_Color {190, 83, 83, 255} },
-    {'2', SDL_Color {249, 252, 241, 255} },
-    {'3', SDL_Color {82, 107, 121, 255} },    
-    {' ', SDL_Color {0, 0, 0, 0} },  
-};
-
 // The 6 wall textures, each 64 pixels wide, 64 pixels high total
 SDL_Surface* map_textures = nullptr;
 
@@ -25,6 +17,7 @@ int full_image_size_w = 1024;
 int full_image_size_h = 512;
 int map_render_size_w = 512;
 int map_render_size_h = 512;
+int texture_width = 64;
 
 int to_pixels_x(const GameMap& map, SDL_Surface* surface, float map_position)
 {
@@ -56,6 +49,16 @@ struct player
     float y;
     float a;
     float fov;
+};
+
+struct ray_cast_result
+{
+    ray_cast_result() : distance(0), x(0), y(0), tile_hit(' ')
+    { }
+    float distance;
+    float x;
+    float y;
+    char tile_hit;
 };
 
 void init_surface(SDL_Surface* surface)
@@ -107,26 +110,28 @@ float to_radians(float degrees)
 }
 
 // Distance of ray and map tile hit.
-std::pair<float, char> trace_ray(float start_x, float start_y, float ang, const GameMap& map, SDL_Surface* surface)
+ray_cast_result trace_ray(float start_x, float start_y, float ang, const GameMap& map, SDL_Surface* surface)
 {
-    float c = 0;
-    char map_tile_hit = ' ';
+    ray_cast_result result;
 
-    for (; c < 20; c += .05) 
+    for (float c = 0; c < 20; c += .05)
     {
         float x = start_x + c * cos(ang);
         float y = start_y + c * sin(ang);
         char map_x_y = map[(int)y][(int)x];
         if (map_x_y != ' ')
         {
-            map_tile_hit = map_x_y;
+            result.distance = c;
+            result.x = x;
+            result.y = y;
+            result.tile_hit = map_x_y;
             break;
         }
         SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
         SDL_RenderDrawPoint(renderer, to_pixels_x(map, surface, x), to_pixels_y(map, surface, y));
     }
 
-    return std::make_pair(c, map_tile_hit);
+    return result;
 }
 
 float trace_player_fov_rays(const player& p, const GameMap& map, SDL_Surface* surface)
@@ -139,9 +144,9 @@ float trace_player_fov_rays(const player& p, const GameMap& map, SDL_Surface* su
     int ray_number = 0;
     for(float current_ang = start_ang; current_ang < end_ang; current_ang += (p.fov / 512.0), ++ray_number)
     {
-        auto cast_result = trace_ray(p.x, p.y, current_ang, map, surface);
-        float ray_dist = cast_result.first;
-        char tile_hit = cast_result.second;
+        ray_cast_result cast_result = trace_ray(p.x, p.y, current_ang, map, surface);
+        float ray_dist = cast_result.distance;
+        char tile_hit = cast_result.tile_hit;
         float corrected_ray_dist = ray_dist * cos(current_ang - p.a);
 
         int column_x = map_render_size_w + ray_number;
@@ -149,9 +154,20 @@ float trace_player_fov_rays(const player& p, const GameMap& map, SDL_Surface* su
         int column_h = (corrected_ray_dist > 0) ? full_image_size_h / corrected_ray_dist : corrected_ray_dist;
         int column_y = full_image_size_h/2 - column_h/2;
 
-        SDL_Color tile_color = mapColors.at(tile_hit);
-        SDL_SetRenderDrawColor(renderer, tile_color.r, tile_color.g, tile_color.b, tile_color.a);
-        SDL_RenderDrawLine(renderer, column_x, column_y, column_x, column_y + column_h);
+        // Determine vertical or horizontal wall by comparing the fractional part
+        // if the ray hit. The corresponding direction that 'sweeps' is what to use in texturing.
+        float hit_x = cast_result.x - floor(cast_result.x + 0.5);
+        float hit_y = cast_result.y - floor(cast_result.y + 0.5);
+        int textcord_x = texture_width * hit_x;
+        if(abs(hit_y) > abs(hit_x))
+            textcord_x = texture_width * hit_y;
+        if (textcord_x < 0)
+            textcord_x += texture_width; // do not forget textcord_x can be negative, fix that
+        int texture_index = cast_result.tile_hit - '0';
+
+        SDL_Rect texture_rect { (texture_width * texture_index) + textcord_x, 0, 1, texture_width };
+        SDL_Rect dest_rect { column_x, column_y, column_w, column_h};
+        SDL_BlitScaled(map_textures, &texture_rect, surface, &dest_rect);
     }
 }
 
