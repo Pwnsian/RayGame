@@ -17,7 +17,8 @@ enum class texture_type : char
 
 enum class texture_name : int
 {
-    TEXTURES_WALL = 0
+    TEXTURES_WALL = 0,
+    TEXTURES_MONSTERS = 1
 };
 
 class texture_manager

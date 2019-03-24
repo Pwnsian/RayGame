@@ -32,13 +32,16 @@ void renderer::render(
     SDL_SetRenderDrawColor(sdl_renderer, 255, 255, 255, 255);
     SDL_RenderFillRect(sdl_renderer, &playerpos); 
 
-    // Draw Rays on player FOV, and then 3D image on the right half of the surface
+    // Draw Rays on player FOV, and then 3D image on the right half of the surface.
+    // Also record rays hit for sprite draw depth buffer
+    float depth_buffer[512];
     float start_ang = p.a - p.fov / 2.0;
     float end_ang = p.a + p.fov / 2.0;
     int ray_number = 0;
     for(float current_ang = start_ang; current_ang < end_ang; current_ang += (p.fov / 512.0), ++ray_number)
     {
         ray_cast_result cast_result = map.trace_ray(p.x, p.y, current_ang, draw_ray_on_map);
+        depth_buffer[ray_number] = cast_result.distance;
 
         float ray_dist = cast_result.distance;
         texture_type tile_hit = cast_result.tile_hit;
@@ -74,7 +77,7 @@ void renderer::render(
         SDL_RenderFillRect(sdl_renderer, &spritepos); 
 
         // Draw 3D
-        s.render(sdl_renderer, p);
+        s.render(sdl_renderer, surface, manager, p, depth_buffer);
     }    
 }
 

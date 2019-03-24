@@ -6,6 +6,7 @@ texture_manager::texture_manager(const std::string& source_directory)
     : source_directory(source_directory)
 {
     textures[texture_name::TEXTURES_WALL] = load_texture("walltext.bmp");
+    textures[texture_name::TEXTURES_MONSTERS] = load_texture("monsters.bmp");    
 }
 
 SDL_Surface* texture_manager::load_texture(const std::string& name)
