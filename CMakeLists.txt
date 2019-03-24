@@ -4,7 +4,7 @@ set(CMAKE_CXX_STANDARD 14)
 
 find_package(SDL2 REQUIRED)
 
-add_executable(RayGame main.cpp map.cpp raycast.cpp render.cpp texture.cpp)
+add_executable(RayGame main.cpp map.cpp render.cpp texture.cpp sprite.cpp)
 
 target_include_directories(RayGame PUBLIC ${SDL2_INCLUDE_DIR})
 target_link_libraries(RayGame ${SDL2_LIBRARIES})

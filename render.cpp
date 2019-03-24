@@ -8,11 +8,18 @@ renderer::renderer(texture_manager* manager)
 
 }
 
+void renderer::render(SDL_Surface* surface, SDL_Renderer* sdl_renderer, const game_map& map, const player& player)
+{
+    std::vector<Sprite> emptySprits;
+    render(surface, sdl_renderer, map, player, emptySprits);
+}
+
 void renderer::render(
     SDL_Surface* surface, 
     SDL_Renderer* sdl_renderer, 
     const game_map& map, 
-    const player& p)
+    const player& p,
+    const std::vector<Sprite>& sprites)
 {
     using namespace std::placeholders;
     auto draw_ray_on_map = std::bind(&renderer::draw_point_on_minimap, this, sdl_renderer, map, _1, _2);
@@ -57,15 +64,22 @@ void renderer::render(
         SDL_Rect dest_rect { column_x, column_y, column_w, column_h};
         SDL_BlitScaled(manager->get_texture(texture_name::TEXTURES_WALL), &texture_rect, surface, &dest_rect);
     }
+
+    // Draw Sprites
+    for(const Sprite& s : sprites)
+    {
+        // Draw minimap
+        SDL_Rect spritepos { map.to_pixels_x(s.x), map.to_pixels_y(s.y), 8, 8 };
+        SDL_SetRenderDrawColor(sdl_renderer, 255, 0, 0, 255);
+        SDL_RenderFillRect(sdl_renderer, &spritepos); 
+
+        // Draw 3D
+        s.render(sdl_renderer, p);
+    }    
 }
 
 void renderer::draw_point_on_minimap(SDL_Renderer* renderer, const game_map& map, float x, float y)
 {
     SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
     SDL_RenderDrawPoint(renderer, map.to_pixels_x(x), map.to_pixels_y(y));  
-}
-
-void renderer::draw_3d_fov(SDL_Surface* surface, const player& player)
-{
-
 }
