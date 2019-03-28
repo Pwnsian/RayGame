@@ -41,14 +41,12 @@ void Sprite::render(
     for(int column = 0; column < sprite_width; ++column)
     {
         int sprite_column_x = sprite_x_from_center + column;
-        int sprite_depth_column = sprite_column_x - map_render_size_w;
 
-        // FIXME!
-        //if(sprite_depth_column < 0 || sprite_depth_column >= map_render_size_w)
-        //    continue;
-        //
-        //if(sprite_dist < depth_buffer[sprite_depth_column])
-        //    continue;
+        if(sprite_column_x < 0 || sprite_column_x >= map_render_size_w)
+            continue;
+
+        if(sprite_dist > depth_buffer[sprite_column_x])
+            continue;
 
         // Linear interpolate to map (0..sprite_width) into (0..texture_width) to draw columns
         // to best fit the expanded or reduced sprite width.
