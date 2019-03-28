@@ -18,7 +18,7 @@ int main()
     p.a = 1.523;
     
     // Monsters
-    std::vector<Sprite> sprites{ {1.834, 8.765, 0}, {5.323, 5.365, 1}, {4.123, 10.265, 1} };
+    std::vector<Sprite> sprites{ {3.523, 3.812, 2}, {1.834, 8.765, 0}, {5.323, 5.365, 1}, {4.123, 10.265, 1} };
 
     texture_manager texture_manager(".");
     game_map map(&texture_manager);

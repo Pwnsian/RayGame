@@ -1,4 +1,5 @@
 #include <iostream>
+#include <algorithm>
 #include "render.h"
 #include "constants.h"
 
@@ -68,16 +69,23 @@ void renderer::render(
         SDL_BlitScaled(manager->get_texture(texture_name::TEXTURES_WALL), &texture_rect, surface, &dest_rect);
     }
 
-    // Draw Sprites
-    for(const Sprite& s : sprites)
+    // Draw Sprites - Sort by player distance to not draw over
+    std::vector<const Sprite*> sortedSprites;
+    std::for_each(sprites.begin(), sprites.end(), [&](auto& s){ sortedSprites.push_back(&s); });
+    auto playDistanceSort = [&](const Sprite* s1, const Sprite* s2) {
+        return std::hypot(s1->x - p.x, s1->y - p.y) > std::hypot(s2->x - p.x, s2->y - p.y);
+    };
+    std::sort(sortedSprites.begin(), sortedSprites.end(), playDistanceSort);
+
+    for(const Sprite* s : sortedSprites)
     {
         // Draw minimap
-        SDL_Rect spritepos { map.to_pixels_x(s.x), map.to_pixels_y(s.y), 8, 8 };
+        SDL_Rect spritepos { map.to_pixels_x(s->x), map.to_pixels_y(s->y), 8, 8 };
         SDL_SetRenderDrawColor(sdl_renderer, 255, 0, 0, 255);
         SDL_RenderFillRect(sdl_renderer, &spritepos); 
 
         // Draw 3D
-        s.render(sdl_renderer, surface, manager, p, depth_buffer);
+        s->render(sdl_renderer, surface, manager, p, depth_buffer);
     }    
 }
 
