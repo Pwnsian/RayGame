@@ -24,6 +24,24 @@ int main()
     game_map map(&texture_manager);
     renderer render(&texture_manager);
 
+    SDL_Window* window = nullptr;
+    SDL_Renderer* window_renderer = nullptr;
+    SDL_Surface* window_surface = nullptr;
+    
+    SDL_CreateWindowAndRenderer(full_image_size_w, full_image_size_h, 0, &window, &window_renderer);
+    window_surface = SDL_GetWindowSurface(window);
+
+    SDL_Event event;
+    while(SDL_PollEvent(&event)) {
+        switch (event.type) {
+        case SDL_QUIT:
+            SDL_Quit();
+            break;
+        default:
+            break;
+        }
+    }
+
 #if 0
     // Draw "Look around in a circle" loop
     int look_count = 0;
